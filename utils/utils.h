@@ -1,25 +1,31 @@
-#include "./object.h"
-#include "./transaction.h"
+#include "./../models/operation.h"
 #include <vector>
 #include <string>
+#include <iostream>
 using namespace std;
 
 Object getObject(char name, vector<Object> objectList){
-  for(int i = 0; i < objectList.size(); i++){
+  int i;
+  for(i = 0; i < objectList.size(); i++){
 
-    if(name == objectList[i].name){
-      return objectList[i];
+    if(objectList[i].name == name){
+      break;
     }
   }
+
+  return objectList[i];
 }
 
 Transaction getTransaction(char name, vector<Transaction> transactionList){
-  for(int i = 0; i < transactionList.size(); i++){
+  int i;
+  for(i = 0; i < transactionList.size(); i++){
 
-    if(transactionList[i].name[1] == name){
-      return transactionList[i];
+    if(transactionList[i].name == name){
+      break;
     }
   }
+  
+  return transactionList[i];
 }
 
 vector<Object> setObject(Object object, vector<Object> objectList){

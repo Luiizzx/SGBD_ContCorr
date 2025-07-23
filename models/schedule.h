@@ -1,4 +1,3 @@
-#include "./object.h"
 #include "./operation.h"
 #include <vector>
 using namespace std;

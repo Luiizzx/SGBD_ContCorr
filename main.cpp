@@ -1,19 +1,15 @@
 // to compile and run the program, copy and paste the following commands in the terminal:
 // g++ main.cpp -o main; ./main
 // this program will use wait-die logic for timestamp based concurrency-control
-#include "./models/transaction.h"
-#include "./models/object.h"
-#include "./models/operation.h"
-#include "./models/schedule.h"
 #include "./utils/utils.h"
-#include <iostream>
 #include <fstream>
 #include <sstream>
 #include <vector>
 using namespace std;
 
 int main(void){
-  int i = 0, j = 0, count = 0;
+  int i = 0, j = 0, auxCount = 0;
+  int operationCount = 0;
   char auxChar;
   string auxString;
 
@@ -38,99 +34,115 @@ int main(void){
   //initializes all objects
   while(text[i] != '\n'){
     
-    if(text[i] != ',' && text[i] != ' '){
-      auxChar += text[i];
+    if(text[i] != ',' && text[i] != ' ' && text[i] != ';'){
+      auxChar = text[i];
     }
 
-    if(text[i] == ','){
+    if(text[i] == ',' || text[i] == ';'){
       newObject.name = auxChar;
       newObject.readTime = 0;
       newObject.writeTime = 0;
+
       objectList.push_back(newObject);
+      auxChar = ' ';
     }
     i++;
   }
 
   i = i + 1;
 
-  while(count < 2){
+  //initializes all transactions with their timestamps
+  while(auxCount < 2){
 
-    if(text[i] != ' ' && text[i] != ','){
+    if(text[i] != ' ' && text[i] != ',' && text[i] != ';'){
       auxString += text[i];
     }
 
+    if(text[i] == ',' || text[i] == ';'){
+
+      if(auxCount == 0){ //transactions line actions
+        newTransaction.name = auxString[1];
+        transactionList.push_back(newTransaction);
+        auxString = "";
+      }
+      else{ //timestamps line actions
+        transactionList[j].timestamp = stoi(auxString);
+        auxString = "";
+        j++;
+      }
+    }
+
     if(text[i] == ';'){
-      count++;
+      auxCount++;
     }
-
-    if(count == 1 && text[i] == ','){
-      newTransaction.name = auxString;
-      transactionList.push_back(newTransaction);
-      auxString = "";
-    }
-
-    if(count == 2 && text[i] == ','){
-      transactionList[j].timestamp = stoi(auxString);
-      auxString = "";
-    }
-
     i++; 
   }
-
-  i = i + 5;
-  Schedule newSchedule;
-  vector<Schedule> scheduleList;
 
   string operationText;
   Operation newOperation;
 
-  //runs starting from first operationText to end of each schedule, until EOF
-  while(true){
+  // allows skipping right to the operations start
+  // i = i + 5;
 
-    if(text[i] != ' '){
-      operationText += text[i];
+  //this is just for test of schedules. Must read them properly from .txt file
+  string scheduleText = "r3(X) w3(Y) c1 r1(X) w1(Y) c2 r2(Y) w2(Z) c3";
+  i = 0;
+
+  //runs from first operation of the first schedule until EOF
+  //while(text[i] != '\0){}
+  while(scheduleText[i] != ';'){
+
+    if(scheduleText[i] != ' '){
+      operationText += scheduleText[i];
     }
-
-    if(text[i] == ' ' || text[i+1] == '\n' || text[i+1] == '\0'){
+    
+    if(scheduleText[i] == ' ' || scheduleText[i+1] == '\n' || scheduleText[i+1] == '\0'){
       newOperation.type = operationText[0];
 
       newObject = getObject(operationText[3], objectList);
-      newTransaction = getTransaction(operationText[2], transactionList);
+   
+      newTransaction = getTransaction(operationText[1], transactionList);
 
-       //object has never been read or timestamp wins
-      if(newOperation.type == 'r' && (newObject.readTime == 0 || newObject.writeTime < newTransaction.timestamp)){
-        newObject.readTime = newTransaction.timestamp;
+      //TODO: if the current operation is being done by the same transaction as previous, can just store the timestamp
+      //and add timestamp reset in case of commits by a transaction whose timestamp is set to an object
+
+      //a transaction has been commited, so its important to check if any objects hold a related timestamp
+      if(newOperation.type == 'c'){
+        cout << newObject.readTimeTransactName;
+        if(operationText[1] == newObject.readTimeTransactName){
+          newObject.readTime = 0;
+        }
+        if(operationText[1] == newObject.writeTimeTransactName){
+          newObject.writeTime = 0;
+        }
       }
-
+      //object has never been read or timestamp wins
+      else if(newOperation.type == 'r' && newObject.writeTime < newTransaction.timestamp){
+        newObject.readTime = newTransaction.timestamp;
+        newObject.readTimeTransactName = newTransaction.name;
+      }
       //object has never been written or timestamp wins
-      if(newOperation.type == 'w' && (newObject.writeTime == 0 || newObject.readTime < newTransaction.timestamp)){
+      else if(newOperation.type == 'w' && (newObject.writeTime < newTransaction.timestamp && newObject.readTime < newTransaction.timestamp)){
         newObject.writeTime = newTransaction.timestamp;
+        newObject.writeTimeTransactName = newTransaction.name;
       }
       else{
+        cout << operationText;
+        cout << "Rollback-" << operationCount;
+        break;
         //Rollback, since transaction has no priority
       }
 
+      operationCount++;
       objectList = setObject(newObject, objectList);
       operationText = "";
     }
 
-    //clears the schedule to make a new one
-    if(text[i] == '\n'){
-      scheduleList.push_back(newSchedule);
-      
-      //resets the schedule and the operationText, as we ended one schedule
-      newSchedule.flush(newSchedule.operations);
+    if(scheduleText[i] == '\n'){
       operationText = "";
       i = i + 4; 
     }
 
-    //adds the last schedule
-    if(text[i+1] == '\0'){
-      scheduleList.push_back(newSchedule);
-      break;
-    }
-
-    operationText += text[i];
     i++;
   }
 }

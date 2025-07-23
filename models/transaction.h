@@ -3,6 +3,6 @@ using namespace std;
 
 class Transaction{
   public:
-    string name;
+    char name;
     int timestamp;
 };
