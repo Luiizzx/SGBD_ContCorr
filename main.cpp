@@ -1,8 +1,7 @@
 // to compile and run the program, copy and paste the following commands in the terminal:
-// g++ main.cpp -o main; ./main
+// g++ main.cpp transactOperations.cpp -o main; ./main
 // this program will use wait-die logic for timestamp based concurrency-control
-#include "./utils/utils.h"
-#include "./models/schedule.h"
+#include "./transactOperations.cpp"
 #include <fstream>
 #include <sstream>
 #include <vector>
@@ -25,7 +24,7 @@ int main(void){
 
   Object newObject;
   vector<Object> objectList;
-  
+
   Transaction newTransaction;
   vector<Transaction> transactionList;
 
@@ -73,7 +72,7 @@ int main(void){
     if(text[i] == ';'){
       lineCounter++;
     }
-    i++; 
+    i++;
   }
 
   i = i + 1;
@@ -98,7 +97,7 @@ int main(void){
   string operationText;
   Operation newOperation;
 
-  Schedule scheduleItem; 
+  Schedule scheduleItem;
 
   scheduleItem.status = "Ok";
   scheduleItem.operations = scheduleList[0];
@@ -107,58 +106,35 @@ int main(void){
 
   i = 4;
 
-  while(scheduleIndex < scheduleList.size()){
+  while(true){
 
     if(scheduleItem.operations[i] != ' '){
       operationText += scheduleItem.operations[i];
     }
-    
+
     if(scheduleItem.operations[i] == ' ' || scheduleItem.operations[i+1] == '\n' || scheduleItem.operations[i+1] == '\0'){
       newOperation.type = operationText[0];
 
-      newObject = getObject(operationText[3], objectList);
-      
-      newTransaction = getTransaction(operationText[1], transactionList);
-
-      //a transaction has been commited, so its important to check if any objects hold a related timestamp
-      if(newOperation.type == 'c'){
+      if(newOperation.type == 'c'){ //commit operation
         objectList = newOperation.resetList(objectList);
       }
-      else if(newObject.readTimeTransactName == newTransaction.name || newObject.writeTimeTransactName == newTransaction.name){ 
-        operationCounter++;
-
-        if(newOperation.type == 'r'){
-          newObject = newOperation.readObject(operationText[1], newObject, newTransaction);
-        }
-        else{
-          newObject = newOperation.writeObject(operationText[1], newObject, newTransaction);
-        }
-
-        objectList = setObject(newObject, objectList);
-      }
-      else if(newObject.writeTime < newTransaction.timestamp){
-        operationCounter++;
-
-        if(newOperation.type == 'r'){
-          newObject = newOperation.readObject(operationText[1], newObject, newTransaction);
-        }
-        else if(newObject.readTime < newTransaction.timestamp){
-          newObject = newOperation.writeObject(operationText[1], newObject, newTransaction);
-        }
-
-        objectList = setObject(newObject, objectList);
-      }
       else{
-        //Rollback
-        scheduleItem.status = "Rollback";
+        newObject = getObject(operationText[3], objectList);
+        newTransaction = getTransaction(operationText[1], transactionList);
+
+        newObject = validateOperation(operationText, newOperation, newObject, newTransaction, &scheduleItem);
+        objectList = setObject(newObject, objectList);
+
+        cout << "ID-Objeto: " << newObject.name << ", TS-Read: " << newObject.readTime << ", TS-Write: " << newObject.writeTime << "\n";
       }
-      cout << "ID-Objeto: " << newObject.name << ", TS-Read: " << newObject.readTime << ", TS-Write: " << newObject.writeTime << "\n";
+
       operationText = "";
     }
 
     if(i == scheduleItem.operations.length() || scheduleItem.status == "Rollback"){
       string scheduleResult = scheduleItem.buildScheduleText(currentSchedule, operationCounter);
 
+      cout << "|" << operationText << "|" << "\n";
       scheduleResult += "\n";
       outputFile << scheduleResult;
 
@@ -175,7 +151,7 @@ int main(void){
       scheduleItem.operations = scheduleList[scheduleIndex];
       scheduleItem.status = "Ok";
       objectList = newOperation.resetList(objectList);
-      i = 3; 
+      i = 3;
     }
 
     i++;
