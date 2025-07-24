@@ -1,21 +1,23 @@
-#include "./operation.h"
 #include <vector>
+#include <string>
+#include <iostream>
 using namespace std;
 
 class Schedule{
   public:
-    vector<Operation> operations;
+    string name;
+    string status;
+    string operations;
 
-    void flush(vector<Operation> operationsList){
-      for(int i = operationsList.size(); i > 0; i--){
-        operationsList.pop_back();
+    string buildScheduleText(char current, int operationCount){
+      this->name = "E_" + string(1,current);
+
+      if(this->status == "Rollback"){
+        cout << this->name + "-" + this->status + "-" + to_string(operationCount) << "\n";
+        return this->name + "-" + this->status + "-" + to_string(operationCount);
       }
-    }
 
-    void insertOperation(string operationText){
-      Operation newOperation;
-      Object newObject;
-      Transaction newTransaction;
-      newOperation.type = operationText[0];
+      cout << this->name + "-" + this->status << "\n";
+      return this->name + "-" + this->status;
     }
 };

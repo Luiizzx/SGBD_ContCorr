@@ -2,17 +2,18 @@
 // g++ main.cpp -o main; ./main
 // this program will use wait-die logic for timestamp based concurrency-control
 #include "./utils/utils.h"
+#include "./models/schedule.h"
 #include <fstream>
 #include <sstream>
 #include <vector>
 using namespace std;
 
 int main(void){
-  int i = 0, j = 0, auxCount = 0;
-  int operationCount = 0;
+  int i = 0, j = 0, scheduleIndex = 0;
+  int operationCounter = 0, lineCounter = 0;
+
   char auxChar;
   string auxString;
-
 	stringstream inputfileContent;
 
   ifstream inputFile("./in.txt");
@@ -22,21 +23,14 @@ int main(void){
   inputfileContent << inputFile.rdbuf();
 	string text = inputfileContent.str();
 
-  //writes into file
-  outputFile << text;
-
   Object newObject;
-  Transaction newTransaction;
-
   vector<Object> objectList;
+  
+  Transaction newTransaction;
   vector<Transaction> transactionList;
 
   //initializes all objects
   while(text[i] != '\n'){
-    
-    if(text[i] != ',' && text[i] != ' ' && text[i] != ';'){
-      auxChar = text[i];
-    }
 
     if(text[i] == ',' || text[i] == ';'){
       newObject.name = auxChar;
@@ -46,13 +40,17 @@ int main(void){
       objectList.push_back(newObject);
       auxChar = ' ';
     }
+    else if(text[i] != ' '){
+      auxChar = text[i];
+    }
+
     i++;
   }
 
   i = i + 1;
 
   //initializes all transactions with their timestamps
-  while(auxCount < 2){
+  while(lineCounter < 2){
 
     if(text[i] != ' ' && text[i] != ',' && text[i] != ';'){
       auxString += text[i];
@@ -60,7 +58,7 @@ int main(void){
 
     if(text[i] == ',' || text[i] == ';'){
 
-      if(auxCount == 0){ //transactions line actions
+      if(lineCounter == 0){ //transactions line actions
         newTransaction.name = auxString[1];
         transactionList.push_back(newTransaction);
         auxString = "";
@@ -73,76 +71,115 @@ int main(void){
     }
 
     if(text[i] == ';'){
-      auxCount++;
+      lineCounter++;
     }
     i++; 
+  }
+
+  i = i + 1;
+  j = 0;
+
+  string schedule;
+  vector<string> scheduleList;
+
+  while(text[i] != '\0'){
+    schedule += text[i];
+
+    if(text[i+1] == '\n'){
+      scheduleList.push_back(schedule);
+      schedule = "";
+
+      j++;
+      i++;
+    }
+    i++;
   }
 
   string operationText;
   Operation newOperation;
 
-  // allows skipping right to the operations start
-  // i = i + 5;
+  Schedule scheduleItem; 
 
-  //this is just for test of schedules. Must read them properly from .txt file
-  string scheduleText = "r3(X) w3(Y) c1 r1(X) w1(Y) c2 r2(Y) w2(Z) c3";
-  i = 0;
+  scheduleItem.status = "Ok";
+  scheduleItem.operations = scheduleList[0];
 
-  //runs from first operation of the first schedule until EOF
-  //while(text[i] != '\0){}
-  while(scheduleText[i] != ';'){
+  char currentSchedule = scheduleList[0][2];
 
-    if(scheduleText[i] != ' '){
-      operationText += scheduleText[i];
+  i = 4;
+
+  while(scheduleIndex < scheduleList.size()){
+
+    if(scheduleItem.operations[i] != ' '){
+      operationText += scheduleItem.operations[i];
     }
     
-    if(scheduleText[i] == ' ' || scheduleText[i+1] == '\n' || scheduleText[i+1] == '\0'){
+    if(scheduleItem.operations[i] == ' ' || scheduleItem.operations[i+1] == '\n' || scheduleItem.operations[i+1] == '\0'){
       newOperation.type = operationText[0];
 
       newObject = getObject(operationText[3], objectList);
-   
+      
       newTransaction = getTransaction(operationText[1], transactionList);
-
-      //TODO: if the current operation is being done by the same transaction as previous, can just store the timestamp
-      //and add timestamp reset in case of commits by a transaction whose timestamp is set to an object
 
       //a transaction has been commited, so its important to check if any objects hold a related timestamp
       if(newOperation.type == 'c'){
-        cout << newObject.readTimeTransactName;
-        if(operationText[1] == newObject.readTimeTransactName){
-          newObject.readTime = 0;
-        }
-        if(operationText[1] == newObject.writeTimeTransactName){
-          newObject.writeTime = 0;
-        }
+        objectList = newOperation.resetList(objectList);
       }
-      //object has never been read or timestamp wins
-      else if(newOperation.type == 'r' && newObject.writeTime < newTransaction.timestamp){
-        newObject.readTime = newTransaction.timestamp;
-        newObject.readTimeTransactName = newTransaction.name;
+      else if(newObject.readTimeTransactName == newTransaction.name || newObject.writeTimeTransactName == newTransaction.name){ 
+        operationCounter++;
+
+        if(newOperation.type == 'r'){
+          newObject = newOperation.readObject(operationText[1], newObject, newTransaction);
+        }
+        else{
+          newObject = newOperation.writeObject(operationText[1], newObject, newTransaction);
+        }
+
+        objectList = setObject(newObject, objectList);
       }
-      //object has never been written or timestamp wins
-      else if(newOperation.type == 'w' && (newObject.writeTime < newTransaction.timestamp && newObject.readTime < newTransaction.timestamp)){
-        newObject.writeTime = newTransaction.timestamp;
-        newObject.writeTimeTransactName = newTransaction.name;
+      else if(newObject.writeTime < newTransaction.timestamp){
+        operationCounter++;
+
+        if(newOperation.type == 'r'){
+          newObject = newOperation.readObject(operationText[1], newObject, newTransaction);
+        }
+        else if(newObject.readTime < newTransaction.timestamp){
+          newObject = newOperation.writeObject(operationText[1], newObject, newTransaction);
+        }
+
+        objectList = setObject(newObject, objectList);
       }
       else{
-        cout << operationText;
-        cout << "Rollback-" << operationCount;
-        break;
-        //Rollback, since transaction has no priority
+        //Rollback
+        scheduleItem.status = "Rollback";
       }
-
-      operationCount++;
-      objectList = setObject(newObject, objectList);
+      cout << "ID-Objeto: " << newObject.name << ", TS-Read: " << newObject.readTime << ", TS-Write: " << newObject.writeTime << "\n";
       operationText = "";
     }
 
-    if(scheduleText[i] == '\n'){
+    if(i == scheduleItem.operations.length() || scheduleItem.status == "Rollback"){
+      string scheduleResult = scheduleItem.buildScheduleText(currentSchedule, operationCounter);
+
+      scheduleResult += "\n";
+      outputFile << scheduleResult;
+
+      scheduleIndex++;
+
+      if(scheduleIndex == scheduleList.size()){
+        break;
+      }
+
+      operationCounter = 0;
       operationText = "";
-      i = i + 4; 
+
+      currentSchedule = scheduleList[scheduleIndex][2];
+      scheduleItem.operations = scheduleList[scheduleIndex];
+      scheduleItem.status = "Ok";
+      objectList = newOperation.resetList(objectList);
+      i = 3; 
     }
 
     i++;
   }
+
+  cout << "Saiu do loop";
 }
