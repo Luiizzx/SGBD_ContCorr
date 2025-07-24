@@ -1,7 +1,8 @@
 // to compile and run the program, copy and paste the following commands in the terminal:
-// g++ main.cpp transactOperations.cpp -o main; ./main
+// g++ main.cpp operations.cpp utils.cpp -o main; ./main
 // this program will use wait-die logic for timestamp based concurrency-control
-#include "./transactOperations.cpp"
+#include "./utils.cpp"
+#include "./operations.cpp"
 #include <fstream>
 #include <sstream>
 #include <vector>
@@ -76,20 +77,19 @@ int main(void){
   }
 
   i = i + 1;
-  j = 0;
 
   string schedule;
   vector<string> scheduleList;
 
+  //initializes schedules list
   while(text[i] != '\0'){
     schedule += text[i];
 
-    if(text[i+1] == '\n'){
+    if(text[i+1] == '\n' || text[i+1] == '\0'){
       scheduleList.push_back(schedule);
       schedule = "";
 
-      j++;
-      i++;
+      i++; //ATTENTION HERE
     }
     i++;
   }
@@ -116,14 +116,15 @@ int main(void){
       newOperation.type = operationText[0];
 
       if(newOperation.type == 'c'){ //commit operation
-        objectList = newOperation.resetList(objectList);
+        objectList = Operation::resetList(objectList);
       }
       else{
-        newObject = getObject(operationText[3], objectList);
-        newTransaction = getTransaction(operationText[1], transactionList);
+        operationCounter++;
+        newObject = Utils::getObject(operationText[3], objectList);
+        newTransaction = Utils::getTransaction(operationText[1], transactionList);
 
-        newObject = validateOperation(operationText, newOperation, newObject, newTransaction, &scheduleItem);
-        objectList = setObject(newObject, objectList);
+        newObject = Operation::validateOperation(operationText, newOperation, newObject, newTransaction, &scheduleItem);
+        objectList = Utils::setObject(newObject, objectList);
 
         cout << "ID-Objeto: " << newObject.name << ", TS-Read: " << newObject.readTime << ", TS-Write: " << newObject.writeTime << "\n";
       }
@@ -131,10 +132,9 @@ int main(void){
       operationText = "";
     }
 
-    if(i == scheduleItem.operations.length() || scheduleItem.status == "Rollback"){
-      string scheduleResult = scheduleItem.buildScheduleText(currentSchedule, operationCounter);
+    if(i == (scheduleItem.operations.length() - 1) || scheduleItem.status == "Rollback"){
+      string scheduleResult = Utils::buildScheduleText(&scheduleItem, currentSchedule, operationCounter);
 
-      cout << "|" << operationText << "|" << "\n";
       scheduleResult += "\n";
       outputFile << scheduleResult;
 
@@ -149,8 +149,9 @@ int main(void){
 
       currentSchedule = scheduleList[scheduleIndex][2];
       scheduleItem.operations = scheduleList[scheduleIndex];
+
       scheduleItem.status = "Ok";
-      objectList = newOperation.resetList(objectList);
+      objectList = Operation::resetList(objectList);
       i = 3;
     }
 

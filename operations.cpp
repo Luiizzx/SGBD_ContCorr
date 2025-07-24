@@ -1,4 +1,3 @@
-#include "./utils/utils.h"
 #include "./models/operation.h"
 #include <vector>
 #include <iostream>
@@ -27,7 +26,7 @@ Object Operation::writeObject(char opType, Object object, Transaction transactio
   return object;
 }
 
-Object validateOperation(string text, Operation operation, Object object, Transaction transaction, Schedule *schedule){
+Object Operation::validateOperation(string text, Operation operation, Object object, Transaction transaction, Schedule *schedule){
   if(object.readTimeTransactName == transaction.name || object.writeTimeTransactName == transaction.name){
     if(operation.type == 'r'){
       object = operation.readObject(text[1], object, transaction);
