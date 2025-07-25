@@ -167,6 +167,4 @@ int main(void){
 
     i++;
   }
-
-  cout << "Saiu do loop";
 }

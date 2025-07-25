@@ -45,13 +45,9 @@ Transaction Utils::getTransaction(char name, vector<Transaction> transactionList
 string Utils::buildScheduleText(Schedule *schedule, char current, int operationCount){
   schedule->name = "E_" + string(1,current);
 
-  if(schedule->status == "Rollback"){
-    cout << schedule->name + "-" + schedule->status + "-" + to_string(operationCount - 1) << "\n";
-    return schedule->name + "-" + schedule->status + "-" + to_string(operationCount - 1);
-  }
-
-  cout << schedule->name + "-" + schedule->status << "\n";
-  return schedule->name + "-" + schedule->status;
+  string textBuilder = schedule->name + "-" + schedule->status + (schedule->status == "Rollback" ? to_string(operationCount - 1) : "");
+  cout << textBuilder << "\n";
+  return textBuilder;
 }
 
 void Utils::writeIntoFile(string scheduleName, string operationText, int count){
