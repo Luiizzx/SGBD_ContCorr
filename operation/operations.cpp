@@ -1,4 +1,4 @@
-#include "./models/operation.h"
+#include "./operation.h"
 #include <vector>
 #include <iostream>
 using namespace std;
@@ -26,24 +26,30 @@ Object Operation::writeObject(char opType, Object object, Transaction transactio
   return object;
 }
 
-Object Operation::validateOperation(string text, Operation operation, Object object, Transaction transaction, Schedule *schedule){
-  if(object.readTimeTransactName == transaction.name || object.writeTimeTransactName == transaction.name){
+Object Operation::validateOperation(string text, Operation operation, Object object, Transaction transaction, Schedule *schedule, int *counter){
+  if(object.readTimeTransactName == transaction.name || object.writeTimeTransactName == transaction.name){ //same transaction
     if(operation.type == 'r'){
       object = operation.readObject(text[1], object, transaction);
     }
     else{
       object = operation.writeObject(text[1], object, transaction);
     }
+    *counter = *counter + 1;
     return object;
   }
   else if(object.writeTime < transaction.timestamp){
     if(operation.type == 'r'){
       object = operation.readObject(text[1], object, transaction);
+      *counter = *counter + 1;
+
+      return object;
     }
     else if(object.readTime < transaction.timestamp){
       object = operation.writeObject(text[1], object, transaction);
+      *counter = *counter + 1;
+      
+      return object;
     }
-    return object;
   }
 
   schedule->status = "Rollback";

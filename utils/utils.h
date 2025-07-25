@@ -1,5 +1,5 @@
 #pragma once
-#include "../models/operation.h"
+#include "../operation/operation.h"
 #include <vector>
 #include <string>
 

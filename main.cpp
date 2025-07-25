@@ -1,8 +1,8 @@
 // to compile and run the program, copy and paste the following commands in the terminal:
 // g++ main.cpp operations.cpp utils.cpp -o main; ./main
 // this program will use wait-die logic for timestamp based concurrency-control
-#include "./utils.cpp"
-#include "./operations.cpp"
+#include "./utils/utils.cpp"
+#include "./operation/operations.cpp"
 #include <fstream>
 #include <sstream>
 #include <vector>
@@ -82,15 +82,20 @@ int main(void){
   vector<string> scheduleList;
 
   //initializes schedules list
-  while(text[i] != '\0'){
+  while(true){
     schedule += text[i];
 
-    if(text[i+1] == '\n' || text[i+1] == '\0'){
+    if(text[i+1] == '\0'){
+      scheduleList.push_back(schedule);
+      break;
+    }
+    else if(text[i+1] == '\n'){
       scheduleList.push_back(schedule);
       schedule = "";
 
       i++; //ATTENTION HERE
     }
+
     i++;
   }
 
@@ -116,17 +121,18 @@ int main(void){
       newOperation.type = operationText[0];
 
       if(newOperation.type == 'c'){ //commit operation
+        operationCounter++;
         objectList = Operation::resetList(objectList);
       }
       else{
-        operationCounter++;
+
         newObject = Utils::getObject(operationText[3], objectList);
         newTransaction = Utils::getTransaction(operationText[1], transactionList);
 
-        newObject = Operation::validateOperation(operationText, newOperation, newObject, newTransaction, &scheduleItem);
+        newObject = Operation::validateOperation(operationText, newOperation, newObject, newTransaction, &scheduleItem, &operationCounter);
         objectList = Utils::setObject(newObject, objectList);
 
-        cout << "ID-Objeto: " << newObject.name << ", TS-Read: " << newObject.readTime << ", TS-Write: " << newObject.writeTime << "\n";
+        cout << "ID-O: " << newObject.name << ", TS-R: " << newObject.readTime << ", TS-W: " << newObject.writeTime << ", TS-T: " << newTransaction.name << "\n";
       }
 
       operationText = "";
