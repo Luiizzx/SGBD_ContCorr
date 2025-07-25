@@ -51,7 +51,7 @@ Object Operation::validateOperation(string text, Operation operation, Object obj
       return object;
     }
   }
-
+  *counter = *counter + 1;
   schedule->status = "Rollback";
   return object;
 }

@@ -1,6 +1,8 @@
 #include "./utils.h"
 #include <vector>
 #include <string>
+#include <fstream>
+#include <filesystem>
 #include <iostream>
 using namespace std;
 
@@ -44,10 +46,21 @@ string Utils::buildScheduleText(Schedule *schedule, char current, int operationC
   schedule->name = "E_" + string(1,current);
 
   if(schedule->status == "Rollback"){
-    cout << schedule->name + "-" + schedule->status + "-" + to_string(operationCount) << "\n";
-    return schedule->name + "-" + schedule->status + "-" + to_string(operationCount);
+    cout << schedule->name + "-" + schedule->status + "-" + to_string(operationCount - 1) << "\n";
+    return schedule->name + "-" + schedule->status + "-" + to_string(operationCount - 1);
   }
 
   cout << schedule->name + "-" + schedule->status << "\n";
   return schedule->name + "-" + schedule->status;
+}
+
+void Utils::writeIntoFile(string scheduleName, string operationText, int count){
+  string fileDirectory = "./output/" + string(1, operationText[3]) + ".txt";
+
+  //std::ios:app helps writing in the right place, depending if the file is
+  //empty (write into first line) or not (write into last line)
+  ofstream file(fileDirectory, std::ios::app); 
+
+  string outText = scheduleName + "," + (operationText[0] == 'w' ? "write," : "read,") + to_string(count - 1) + "\n";
+  file << outText;
 }

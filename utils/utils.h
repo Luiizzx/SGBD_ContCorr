@@ -8,5 +8,6 @@ class Utils {
     static Object getObject(char name, vector<Object> objectList);
     static vector<Object> setObject(Object object, vector<Object> objectList);
     static Transaction getTransaction(char name, vector<Transaction> transactionList);
-    static string buildScheduleText(Schedule *schedule, char current, int operationCount);
+    static string buildScheduleText(Schedule *schedule, char currentTransaction, int operationCount);
+    static void writeIntoFile(string scheduleName, string operationText, int operationCount);
 };

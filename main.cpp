@@ -1,6 +1,5 @@
 // to compile and run the program, copy and paste the following commands in the terminal:
-// g++ main.cpp operations.cpp utils.cpp -o main; ./main
-// this program will use wait-die logic for timestamp based concurrency-control
+// g++ main.cpp -o main; ./main
 #include "./utils/utils.cpp"
 #include "./operation/operations.cpp"
 #include <fstream>
@@ -109,6 +108,7 @@ int main(void){
 
   char currentSchedule = scheduleList[0][2];
 
+  scheduleItem.name = "E_" + string(1, currentSchedule);
   i = 4;
 
   while(true){
@@ -133,6 +133,8 @@ int main(void){
         objectList = Utils::setObject(newObject, objectList);
 
         cout << "ID-O: " << newObject.name << ", TS-R: " << newObject.readTime << ", TS-W: " << newObject.writeTime << ", TS-T: " << newTransaction.name << "\n";
+
+        Utils::writeIntoFile(scheduleItem.name, operationText, operationCounter);
       }
 
       operationText = "";
@@ -150,15 +152,17 @@ int main(void){
         break;
       }
 
-      operationCounter = 0;
-      operationText = "";
-
       currentSchedule = scheduleList[scheduleIndex][2];
       scheduleItem.operations = scheduleList[scheduleIndex];
-
+      
       scheduleItem.status = "Ok";
+      scheduleItem.name = "E_" + string(1, currentSchedule);
+      
       objectList = Operation::resetList(objectList);
+
       i = 3;
+      operationCounter = 0;
+      operationText = "";
     }
 
     i++;
